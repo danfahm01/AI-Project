@@ -1,0 +1,57 @@
+# Production overlay: HTTPS/WSS only, the Flutter web app, production settings.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Needs Docker Compose 2.24+ (!override). Full guide: docs/deployment.md
+# Required in .env: JWT_SECRET, POSTGRES_PASSWORD, SERVER_NAME, and a TLS
+# certificate (Let's Encrypt or your own). The web app is served from the same
+# origin as the API, so CORS_ORIGINS is only needed for other web front ends.
+
+services:
+  backend:
+    environment:
+      APP_ENV: production
+      CORS_ALLOW_LOCALHOST: "false"
+      ENABLE_API_DOCS: ${ENABLE_API_DOCS:-false}
+
+  nginx:
+    # Nginx + the compiled web app (same origin as the API, so the app uses API_BASE_URL=/).
+    build:
+      context: .
+      dockerfile: infrastructure/docker/web.Dockerfile
+    # Or a released image: WEB_IMAGE=ghcr.io/<owner>/<repo>/web:<version>
+    image: ${WEB_IMAGE:-voice-assistant-web}
+    ports:
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      SERVER_NAME: ${SERVER_NAME:?Set SERVER_NAME in .env (your domain, e.g. assistant.example.com)}
+      # Defaults: your own certificate in ./infrastructure/certs/ (see TLS_CERT_DIR).
+      # Let's Encrypt: /etc/letsencrypt/live/<SERVER_NAME>/fullchain.pem and privkey.pem.
+      TLS_CERTIFICATE: ${TLS_CERTIFICATE:-/etc/nginx/certs/fullchain.pem}
+      TLS_CERTIFICATE_KEY: ${TLS_CERTIFICATE_KEY:-/etc/nginx/certs/privkey.pem}
+    # Replaces the development mounts: the web image has its own configuration.
+    volumes: !override
+      - ${TLS_CERT_DIR:-./infrastructure/certs}:/etc/nginx/certs:ro
+      - letsencrypt:/etc/letsencrypt:ro
+      - certbot-webroot:/var/www/certbot:ro
+
+  # Let's Encrypt certificates (optional). Not started by `up`; run it on demand:
+  #   first certificate (Nginx stopped, port 80 free):
+  #     docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm --service-ports \
+  #       certbot certonly --standalone -d <SERVER_NAME> -m <your email>
+  #   renewal (Nginx running), e.g. daily from cron:
+  #     docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm \
+  #       certbot renew --webroot -w /var/www/certbot \
+  #     && docker compose -f docker-compose.yml -f docker-compose.prod.yml exec nginx nginx -s reload
+  certbot:
+    image: certbot/certbot
+    profiles: ["certbot"]
+    ports:
+      - "80:80"
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+
+volumes:
+  letsencrypt:
+  certbot-webroot:

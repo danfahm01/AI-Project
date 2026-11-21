@@ -1,0 +1,23 @@
+# Store text files with LF line endings and check them out with LF on every OS.
+# Shell scripts run inside Linux containers and CI, where CRLF breaks them.
+* text=auto eol=lf
+
+# Windows scripts keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files: never touch line endings or show text diffs.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.pdf binary
+*.jar binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary

@@ -1,0 +1,54 @@
+# Production server blocks: HTTPS/WSS only.
+#
+# Rendered at container start by the official nginx image (envsubst on
+# /etc/nginx/templates/*.template -> /etc/nginx/conf.d/). Only the variables
+# matched by NGINX_ENVSUBST_FILTER are replaced (SERVER_NAME, TLS_CERTIFICATE,
+# TLS_CERTIFICATE_KEY, CSP_CONNECT_SRC); nginx's own $variables are left alone.
+# Defaults are set in infrastructure/docker/web.Dockerfile.
+
+include /etc/nginx/snippets/http-common.conf;
+
+map $scheme $csp_connect_src {
+    default "${CSP_CONNECT_SRC}";
+}
+
+# Plain HTTP: Let's Encrypt HTTP-01 challenges, everything else redirects to HTTPS.
+server {
+    listen 80 default_server;
+    server_name ${SERVER_NAME};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        try_files $uri =404;
+    }
+
+    location /health/ {
+        include /etc/nginx/snippets/proxy-backend.conf;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl default_server;
+    http2 on;
+    server_name ${SERVER_NAME};
+
+    ssl_certificate     ${TLS_CERTIFICATE};
+    ssl_certificate_key ${TLS_CERTIFICATE_KEY};
+
+    # Mozilla "Intermediate" profile (TLS 1.2+, AEAD ciphers with forward secrecy).
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:TLS:10m;
+    ssl_session_tickets off;
+
+    # Inherited by the API locations; static locations add it via static-headers.conf.
+    add_header Strict-Transport-Security $hsts always;
+
+    include /etc/nginx/snippets/app-locations.conf;
+}

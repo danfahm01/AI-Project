@@ -1,0 +1,33 @@
+# Secrets
+.env
+*.env.local
+# TLS certificates and keys (docker-compose.prod.yml mounts this folder)
+infrastructure/certs/
+*.pem
+# Android upload keystore and its passwords
+*.jks
+*.keystore
+key.properties
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+backend/data/
+*.db
+
+# Flutter (app-level ignores live in apps/flutter_app/.gitignore)
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

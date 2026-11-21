@@ -1,0 +1,16 @@
+# Build context of infrastructure/docker/web.Dockerfile (the repository root).
+# The backend image uses backend/ as its context (backend/.dockerignore).
+.git
+.github
+.env
+*.env.local
+backend
+docs
+infrastructure/certs
+**/.dart_tool
+**/build
+**/.idea
+**/*.iml
+apps/flutter_app/android/.gradle
+apps/flutter_app/ios/Pods
+apps/flutter_app/macos/Pods

@@ -1,0 +1,19 @@
+# Pinned to the versions the test suite was run against (Python 3.14).
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.4
+pydantic-settings==2.16.3
+email-validator==2.4.0
+sqlalchemy[asyncio]==2.1.9
+asyncpg==0.32.0
+aiosqlite==0.22.1
+alembic==1.20.1
+redis==8.1.0
+pyjwt==2.15.1
+argon2-cffi==25.1.0
+# Official OpenAI SDK (Responses API). Verified against docs on 2026-11-20.
+openai==3.57.0
+# Official Google Gen AI SDK (Gemini API + Live API tokens). Verified on 2026-11-21.
+google-genai==3.6.1
+# Multipart form parsing for attachment uploads (FastAPI's UploadFile).
+python-multipart==0.0.34

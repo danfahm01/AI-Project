@@ -1,0 +1,29 @@
+# Weekly pull requests for dependency updates (security fixes arrive as soon as
+# GitHub publishes an advisory). CI runs on each of them.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+
+  - package-ecosystem: pub
+    directory: /apps/flutter_app
+    schedule:
+      interval: weekly
+    groups:
+      dart:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directories: ["/backend", "/infrastructure/docker"]
+    schedule:
+      interval: weekly
