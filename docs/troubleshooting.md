@@ -1,5 +1,17 @@
 # Troubleshooting
 
+## `start-local.cmd`
+
+| Message | Cause and fix |
+|---|---|
+| `No OPENAI_API_KEY or GEMINI_API_KEY in .env` | Open `.env` in the repository root, paste the key after `OPENAI_API_KEY=` (no quotes, no spaces), save, run again |
+| `Python 3.12 or newer is required` | Install Python from <https://www.python.org/downloads/> (tick "Add python.exe to PATH" or use the `py` launcher) |
+| `Flutter is needed once to build the web app` | Install Flutter, or put it on `PATH`. Only the first run (and app changes) need it |
+| `Port 8000 is already in use` | Another program (or a second copy of the script) uses the port. Close it, or run `start-local.cmd -Port 8080` |
+| The page loads but replies say "No AI provider is configured" | The key line in `.env` is commented out or empty. Fix it and restart the script |
+| `provider_auth_failed` / `provider_rate_limited` under a reply | The key is wrong or the OpenAI account has no credit: check <https://platform.openai.com/settings/organization/billing> |
+| Old app version after changing the Flutter code | Run `start-local.cmd -RebuildWeb` |
+
 ## Windows: "The filename or extension is too long" / "Failed to canonicalize path ... (122)"
 
 Windows limits paths to 260 characters unless long paths are enabled. A deep
@@ -40,7 +52,9 @@ tests don't need it.
 ## "Building with plugins requires symlink support"
 
 Enable Developer Mode on Windows (*Settings → System → For developers*). It's
-only needed for Windows desktop builds.
+only needed for Windows desktop builds and `flutter run`/`flutter build` in
+`apps/flutter_app`; `start-local.cmd` builds the web app from a copy without the
+platform folders and works without it.
 
 ## Signed out unexpectedly
 

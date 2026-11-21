@@ -183,6 +183,12 @@ class Settings(BaseSettings):
     attachment_link_ttl_seconds: int = Field(default=300, ge=30, le=3600)
     rate_limit_uploads_per_minute: int = Field(default=30, ge=1)
 
+    # --- Web app (one local server without Nginx, see scripts/start-local.ps1) -----
+    # Folder with a Flutter web build (API_BASE_URL=/) to serve at /. Empty = API only.
+    web_app_dir: str | None = None
+    # Hosts the web app connects to directly in voice mode (Content-Security-Policy).
+    web_csp_connect_src: str = "https://api.openai.com wss://generativelanguage.googleapis.com"
+
     @field_validator("log_level", mode="before")
     @classmethod
     def _upper_log_level(cls, value: Any) -> Any:
@@ -211,6 +217,7 @@ class Settings(BaseSettings):
         "gemini_api_key",
         "gemini_base_url",
         "gemini_live_model",
+        "web_app_dir",
         mode="before",
     )
     @classmethod

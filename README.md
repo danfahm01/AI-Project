@@ -42,7 +42,22 @@ docker-compose.prod.yml  Production overlay: HTTPS/WSS, web app, Let's Encrypt
 .env.example        Configuration template
 ```
 
-## Quick start (local, no Docker)
+## Run it on your PC (one command, Windows)
+
+Needs Python 3.12+, Flutter 3.50+ (only to build the web app once) and an OpenAI
+or Gemini API key.
+
+1. Double-click **`start-local.cmd`** (or run `.\start-local.cmd` in a terminal).
+2. The first time, `.env` opens in Notepad: paste your key after `OPENAI_API_KEY=`
+   (or `GEMINI_API_KEY=`), save and close it.
+3. The script installs the backend, creates the database, builds the web app and
+   opens <http://localhost:8000>. Create an account and start chatting.
+
+Keep the window open while you use the app (Ctrl+C stops it). Accounts and
+conversations stay on your PC in `backend/data/`. Details:
+[docs/setup.md](docs/setup.md#0-run-it-on-this-pc-one-command-windows).
+
+## Quick start for development (local, no Docker)
 
 Requirements: Python 3.12+ (3.14 tested), Flutter 3.50+, Git.
 
@@ -72,7 +87,7 @@ Android and Windows builds, is in [docs/setup.md](docs/setup.md).
 ## Tests
 
 ```powershell
-cd backend;          .venv\Scripts\pytest -q --cov=app   # 152 tests (1 needs REDIS_TEST_URL), 96 % coverage
+cd backend;          .venv\Scripts\pytest -q --cov=app   # 165 tests (1 needs REDIS_TEST_URL), 96 % coverage
 cd apps/flutter_app; flutter analyze; flutter test       # 135 tests
 ```
 

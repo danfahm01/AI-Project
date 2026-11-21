@@ -1,5 +1,40 @@
 # Setup
 
+## 0. Run it on this PC (one command, Windows)
+
+The quickest way to use the app: the backend and the web app run together as
+one local server at <http://localhost:8000>. No Docker, Visual Studio or Nginx.
+
+Needs Python 3.12+, Flutter 3.50+ (only to build the web app; the script also
+finds it in `C:\src\flutter` or `%USERPROFILE%\develop\flutter` when it is not
+on `PATH`) and an OpenAI or Gemini API key.
+
+1. Double-click `start-local.cmd` in the repository root, or run it in a terminal:
+
+   ```powershell
+   .\start-local.cmd
+   ```
+
+2. The first time, `.env` opens in Notepad. Paste your key after
+   `OPENAI_API_KEY=` (or `GEMINI_API_KEY=`), save and close Notepad. The key
+   stays in `.env` on this PC; the browser never receives it.
+3. The script (`scripts/start-local.ps1`) then:
+   - creates `.env` with a random `JWT_SECRET`, so sign-ins survive restarts;
+   - creates `backend\.venv` and installs the backend (again only when
+     `requirements.txt` changes);
+   - creates or migrates the SQLite database in `backend\data\`;
+   - builds the web app with `API_BASE_URL=/` (again only when the app's sources
+     change, or with `-RebuildWeb`). It builds from a copy without the platform
+     folders (`apps\flutter_app\build\local-web`), so Windows Developer Mode is
+     not needed;
+   - starts the server with `WEB_APP_DIR` pointing at the build and opens the browser.
+4. Create an account in the app and start chatting. Voice mode works too: the
+   browser allows the microphone on `localhost`.
+
+Keep the window open while you use the app; **Ctrl+C** stops it. Options:
+`-Port 8080`, `-RebuildWeb`, `-NoBrowser`. The server listens on `127.0.0.1`
+only, so other devices on the network cannot reach it.
+
 ## 1. Prerequisites
 
 | Tool | Version | Needed for |
@@ -42,6 +77,7 @@ then `backend/.env` (later wins). Key values:
 | `OPENAI_REALTIME_MODEL` | `gpt-realtime-2.1` | OpenAI voice model; empty disables OpenAI voice |
 | `GEMINI_LIVE_MODEL` | `gemini-3.8-live` | Gemini voice model; empty disables Gemini voice |
 | `DEFAULT_AI_PROVIDER` | empty | `openai` or `gemini` when both are configured; empty = OpenAI (first registered) |
+| `WEB_APP_DIR` | empty | A Flutter web build (`API_BASE_URL=/`) to serve at `/` from the API server; set by `start-local.ps1` |
 
 ## 2b. Enabling AI replies (OpenAI)
 

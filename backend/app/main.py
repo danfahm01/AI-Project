@@ -20,6 +20,7 @@ from app.core.errors import register_exception_handlers
 from app.core.logging import setup_logging
 from app.core.middleware import RequestContextMiddleware
 from app.core.rate_limit import build_rate_limit_backend
+from app.core.web_app import WebAppFiles
 from app.db.session import Database
 from app.services.attachment_storage import AttachmentStorage
 
@@ -93,4 +94,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_exception_handlers(app)
     app.include_router(health.router)
     app.include_router(api_router, prefix=settings.api_v1_prefix)
+    if settings.web_app_dir:
+        # Last, so every API route matches first.
+        app.mount("/", WebAppFiles(settings.web_app_dir, connect_src=settings.web_csp_connect_src), name="web")
+        logger.info("Serving the web app from %s", settings.web_app_dir)
     return app
