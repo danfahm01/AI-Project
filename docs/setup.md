@@ -224,8 +224,10 @@ before distributing it widely.
 
 ## 7. Android build
 
-1. Install Android Studio, then the Android SDK, command-line tools and a JDK
-   from its SDK Manager; run `flutter doctor --android-licenses`.
+1. Install Android Studio, then the Android SDK and command-line tools from its
+   SDK Manager; run `flutter doctor --android-licenses`. Gradle must run on
+   **JDK 21** (Android Studio's bundled JDK is fine): with JDK 17, Android lint
+   in release builds crashes with `NoSuchMethodError ... List.removeLast()`.
 2. Change the application id (`com.example.voice_assistant`) in
    `android/app/build.gradle.kts` before publishing: Google Play rejects `com.example`.
 3. Debug builds may use plain HTTP to `10.0.2.2` (allowed in

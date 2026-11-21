@@ -107,6 +107,7 @@ The server log has the provider's full message.
 | Google Play rejects the bundle as debug-signed | No `key.properties` (local) or `ANDROID_*` secrets (CI): see setup.md, section 7 |
 | Android release app can't reach the server | Release builds allow HTTPS only; build with an `https://` `API_BASE_URL` |
 | Android: `Execution failed for task ':mp_audio_stream:checkReleaseAarMetadata'` … `is currently compiled against android-31` | A plugin pins an old compileSdk/NDK. `android/build.gradle.kts` raises every plugin to the app's compileSdk, minSdk and NDK; keep that block if the `android/` folder is regenerated |
+| Android: `lintVitalAnalyzeRelease` fails with `NoSuchMethodError` … `List.removeLast()` | Gradle runs on JDK 17. Use JDK 21 (`flutter config --jdk-dir <JDK 21>` or Android Studio's bundled JDK) |
 | Windows: "VCRUNTIME140_1.dll was not found" | The Visual C++ runtime DLLs are missing next to the `.exe` (the CI zip includes them; for local builds see setup.md, section 6) |
 | macOS: "app is damaged" / "unidentified developer" | CI builds are unsigned. Right-click → Open for testing; sign and notarize for distribution |
 | Linux: `error while loading shared libraries: libsecret-1.so.0` | Install `libsecret-1-0` (and `libgtk-3-0`) on the target machine |
