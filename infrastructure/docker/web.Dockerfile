@@ -33,6 +33,8 @@ COPY --chown=builder:builder apps/flutter_app/ ./
 # --csp: no eval in the compiled JavaScript (matches the Content-Security-Policy).
 RUN flutter build web --release --no-web-resources-cdn --web-content-hash --csp \
         --dart-define=API_BASE_URL="${API_BASE_URL}" \
+    # Plugin scripts loaded by a fixed name (voice mode) get that name back.
+    && dart run tool/fixed_name_web_assets.dart build/web \
     # Precompress for gzip_static (served when the browser accepts gzip).
     && find build/web -type f -size +1k \
         \( -name '*.js' -o -name '*.mjs' -o -name '*.wasm' -o -name '*.json' -o -name '*.html' \

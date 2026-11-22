@@ -236,6 +236,8 @@ jobs:
           flutter build web --release --no-web-resources-cdn --web-content-hash --csp
           --dart-define=API_BASE_URL=/ --build-number=${{ github.run_number }}
           ${{ inputs.build_name && format('--build-name={0}', inputs.build_name) || '' }}
+      # Plugin scripts loaded by a fixed name (voice mode) get that name back.
+      - run: dart run tool/fixed_name_web_assets.dart build/web
       - run: tar -C build/web -czf voice-assistant-web.tar.gz .
       - uses: actions/upload-artifact@v7
         with:

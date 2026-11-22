@@ -90,8 +90,8 @@ Android and Windows builds, is in [docs/setup.md](docs/setup.md).
 ## Tests
 
 ```powershell
-cd backend;          .venv\Scripts\pytest -q --cov=app   # 188 tests (1 needs REDIS_TEST_URL), 96 % coverage
-cd apps/flutter_app; flutter analyze; flutter test       # 135 tests
+cd backend;          .venv\Scripts\pytest -q --cov=app   # 191 tests (1 needs REDIS_TEST_URL), 96 % coverage
+cd apps/flutter_app; flutter analyze; flutter test       # 139 tests
 ```
 
 ## Documentation

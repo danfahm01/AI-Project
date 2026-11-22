@@ -21,7 +21,13 @@ def web_dir(tmp_path: Path) -> Path:
     (web / "index.html").write_text("<!doctype html><title>app</title>", encoding="utf-8")
     (web / "flutter_bootstrap.js").write_text("// bootstrap", encoding="utf-8")
     (web / "main.dart.a1B2c3_d.js").write_text("// app", encoding="utf-8")
-    (web / "assets" / "fonts" / "MaterialIcons.4f2e.otf").write_bytes(b"font")
+    (web / "assets" / "fonts" / "MaterialIcons-Regular.f8a0c9c7.otf").write_bytes(b"font")
+    (web / "assets" / "NOTICES.6b8cb34e").write_text("licenses", encoding="utf-8")
+    worklet = web / "assets" / "packages" / "record_web" / "assets" / "js"
+    worklet.mkdir(parents=True)
+    (worklet / "record.worklet.21b830de.js").write_text("// worklet", encoding="utf-8")
+    # The copy tool/fixed_name_web_assets.dart adds: the plugin loads this fixed path.
+    (worklet / "record.worklet.js").write_text("// worklet", encoding="utf-8")
     (web / "canvaskit" / "canvaskit.wasm").write_bytes(b"\x00asm")
     return web
 
@@ -53,14 +59,25 @@ async def test_index_has_csp_and_is_revalidated(web_client: AsyncClient) -> None
     assert response.headers["x-content-type-options"] == "nosniff"
 
 
-@pytest.mark.parametrize("path", ["/main.dart.a1B2c3_d.js", "/assets/fonts/MaterialIcons.4f2e.otf"])
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/main.dart.a1B2c3_d.js",
+        "/assets/fonts/MaterialIcons-Regular.f8a0c9c7.otf",
+        "/assets/NOTICES.6b8cb34e",
+        "/assets/packages/record_web/assets/js/record.worklet.21b830de.js",
+    ],
+)
 async def test_content_hashed_files_are_cached_forever(web_client: AsyncClient, path: str) -> None:
     response = await web_client.get(path)
     assert response.status_code == 200
     assert response.headers["cache-control"] == "public, max-age=31536000, immutable"
 
 
-@pytest.mark.parametrize("path", ["/flutter_bootstrap.js", "/canvaskit/canvaskit.wasm"])
+@pytest.mark.parametrize(
+    "path",
+    ["/flutter_bootstrap.js", "/canvaskit/canvaskit.wasm", "/assets/packages/record_web/assets/js/record.worklet.js"],
+)
 async def test_fixed_names_are_revalidated(web_client: AsyncClient, path: str) -> None:
     response = await web_client.get(path)
     assert response.status_code == 200

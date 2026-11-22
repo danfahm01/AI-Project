@@ -279,7 +279,8 @@ try {
 # --- 4. Web app -----------------------------------------------------------------------
 Write-Step 'Web app (apps\flutter_app\build\web)'
 $index = Join-Path $webDir 'index.html'
-$wantedStamp = $webBuildArgs -join ' '
+# Names the post-build step too, so builds from before it are redone.
+$wantedStamp = ($webBuildArgs -join ' ') + ' + tool/fixed_name_web_assets.dart'
 $needBuild = $RebuildWeb -or -not (Test-Path $index) -or -not (Test-Path $webStamp)
 if (-not $needBuild) {
     # Built by this script (same-origin API), and nothing changed since?
@@ -288,7 +289,7 @@ if (-not $needBuild) {
 if (-not $needBuild) {
     $builtAt = (Get-Item $index).LastWriteTimeUtc
     $sources = @()
-    foreach ($folder in 'lib', 'web', 'assets') {
+    foreach ($folder in 'lib', 'web', 'assets', 'tool') {
         $path = Join-Path $appDir $folder
         if (Test-Path $path) { $sources += Get-ChildItem $path -Recurse -File }
     }
@@ -325,6 +326,12 @@ if ($needBuild) {
     try {
         & $flutter @webBuildArgs
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path $index)) { Stop-WithError 'flutter build web failed (see the messages above)' }
+        # Plugin scripts that voice mode loads by a fixed name (microphone, playback)
+        # get that name back next to the content-hashed file.
+        $dart = Join-Path (Split-Path $flutter) 'dart.bat'
+        if (-not (Test-Path $dart)) { $dart = 'dart' }
+        & $dart run tool/fixed_name_web_assets.dart build/web
+        if ($LASTEXITCODE -ne 0) { Stop-WithError 'Preparing the web build for voice mode failed (see the messages above)' }
     } finally {
         Pop-Location
     }
@@ -335,7 +342,9 @@ if ($needBuild) {
 
 # --- 5. Server ------------------------------------------------------------------------
 if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) {
-    Stop-WithError "Port $Port is already in use. Close the other program, or run with -Port 8080."
+    $otherPort = if ($Port -eq 8080) { 8081 } else { 8080 }
+    Stop-WithError ("Port $Port is already in use. If the app already runs in another window, use it at " +
+        "http://localhost:$Port or close that window (Ctrl+C) first. Otherwise run with -Port $otherPort.")
 }
 $url = "http://localhost:$Port"
 Write-Step "Starting $url  (press Ctrl+C to stop)"

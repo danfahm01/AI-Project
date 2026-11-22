@@ -321,7 +321,7 @@ ai_provider_settings                 (server-wide provider/model enablement; key
 
 | Where | What | Effect |
 |---|---|---|
-| Web build | `--web-content-hash`, Nginx caching (`immutable` for hashed files, `no-cache` for `index.html`/bootstrap), precompressed `.gz` | Repeat visits download only changed files. The first load transfers about 3.3 MB, about 10 MB uncompressed (measured: main.dart.js 4.3 → 1.1 MB, CanvasKit 5.5 → 2.1 MB) |
+| Web build | `--web-content-hash`, Nginx caching (`immutable` for hashed files, `no-cache` for `index.html`/bootstrap and the unhashed plugin scripts that `tool/fixed_name_web_assets.dart` adds for voice mode), precompressed `.gz` | Repeat visits download only changed files. The first load transfers about 3.3 MB, about 10 MB uncompressed (measured: main.dart.js 4.3 → 1.1 MB, CanvasKit 5.5 → 2.1 MB) |
 | Web build | CanvasKit and fonts served locally (`--no-web-resources-cdn`) | No third-party round trips at start-up |
 | Nginx → API | Upstream keep-alive (the `Connection` header is only set for WebSocket upgrades), gzip for JSON except token responses | Fewer TCP handshakes per request, smaller conversation lists |
 | Chat replies | Only the newest `CHAT_HISTORY_MAX_MESSAGES` (200) messages are read per reply, through the `(conversation_id, seq)` index | Reply start-up cost no longer grows with the length of a conversation |

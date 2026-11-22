@@ -83,6 +83,16 @@ async def check_web_app(report: Report, http: httpx.AsyncClient, base: str) -> N
     _header_check(report, "web entrypoint", entry, "cache-control", "immutable")
     _header_check(report, "web entrypoint", entry, "content-encoding", "gzip")
 
+    # Voice mode: plugins load these by a fixed name (tool/fixed_name_web_assets.dart).
+    for label, path in (
+        ("microphone worklet", "assets/packages/record_web/assets/js/record.worklet.js"),
+        ("audio player script", "assets/packages/mp_audio_stream/js/audio_stream.js"),
+    ):
+        script = await http.get(f"{base}/{path}")
+        report.check(f"web: {label}", script.status_code == 200, script.status_code)
+        _header_check(report, f"web {label}", script, "content-type", "javascript")
+        _header_check(report, f"web {label}", script, "cache-control", "no-cache")
+
 
 async def check_http_redirect(report: Report, http: httpx.AsyncClient, http_url: str) -> None:
     response = await http.get(f"{http_url.rstrip('/')}/api/v1/providers")

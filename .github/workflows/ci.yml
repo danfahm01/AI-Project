@@ -81,6 +81,11 @@ jobs:
       - run: flutter test --coverage
       - name: Production web build (same flags as the web image)
         run: flutter build web --release --no-web-resources-cdn --web-content-hash --csp --dart-define=API_BASE_URL=/
+      - name: Plugin scripts that voice mode loads by a fixed name are present
+        run: |
+          dart run tool/fixed_name_web_assets.dart build/web
+          test -f build/web/assets/packages/record_web/assets/js/record.worklet.js
+          test -f build/web/assets/packages/mp_audio_stream/js/audio_stream.js
 
   deployment:
     name: Docker deployment (production stack over HTTPS, smoke test)

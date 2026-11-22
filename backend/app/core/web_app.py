@@ -16,8 +16,11 @@ from starlette.staticfiles import StaticFiles
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocketClose
 
-# --web-content-hash: these names change with their content, so they never go stale.
-_IMMUTABLE = re.compile(r"^(assets/.+|main\.dart\.[A-Za-z0-9_-]+\.(js|mjs|wasm))$")
+# --web-content-hash puts a content hash in these names (name.<hash>.ext), so they
+# never go stale. The unhashed copies of plugin scripts that
+# apps/flutter_app/tool/fixed_name_web_assets.dart adds keep their name and are
+# revalidated instead.
+_IMMUTABLE = re.compile(r"^(assets/(.+/)?[^/]+\.[0-9a-f]{8,}(\.[^/.]+)?|main\.dart\.[A-Za-z0-9_-]+\.(js|mjs|wasm))$")
 # Requests under these prefixes belong to the API: an unknown path there is a JSON
 # 404 from the API, never a file lookup.
 _API_PREFIXES = ("/api/", "/health/", "/docs", "/redoc", "/openapi.json")
