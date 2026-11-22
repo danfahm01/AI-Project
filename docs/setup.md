@@ -18,9 +18,13 @@ on `PATH`) and an AI model: a free local one through [Ollama](#2c-local-models-o
 
 2. If Ollama runs on the PC and no key is set, the script uses Ollama
    (`OLLAMA_BASE_URL=http://127.0.0.1:11434` in `.env`) and asks nothing.
-   Otherwise it asks for a key: paste it and press Enter (the input is hidden). A key starting with `sk-` is saved as `OPENAI_API_KEY`, one
-   starting with `AIza` as `GEMINI_API_KEY`, in `.env` on this PC; the browser
-   never receives it. To change it later, edit `.env` and restart the script.
+   Otherwise it asks for a key: paste it and press Enter (the input is hidden).
+   A key starting with `sk-` is an OpenAI key, one starting with `AIza` a
+   (standard) Gemini key; for any other key, such as the Gemini "auth keys" AI
+   Studio creates since 2026-05-28, the script asks which provider it belongs to.
+   It checks the key with the provider (a list-models call), then saves it as
+   `OPENAI_API_KEY` or `GEMINI_API_KEY` in `.env` on this PC; the browser never
+   receives it. To change it later, run `start-local.cmd -AddKey` or edit `.env`.
 3. The script (`scripts/start-local.ps1`) then:
    - creates `.env` with a random `JWT_SECRET`, so sign-ins survive restarts;
    - creates `backend\.venv` and installs the backend (again only when

@@ -4,7 +4,8 @@
 
 | Message | Cause and fix |
 |---|---|
-| `The pasted text (N characters) is not an OpenAI key (sk-...) or a Gemini key (AIza...)` | The paste did not arrive (N is 0), or something else was copied. Copy the key itself from the provider's website (OpenAI keys start with `sk-`, Gemini keys with `AIza`) and paste with right-click or Ctrl+V. Or open `.env` in the repository root (`notepad .env`), put the key after `OPENAI_API_KEY=` or `GEMINI_API_KEY=` (no quotes, no spaces), save, run again |
+| `The pasted text (N characters, ...) is not an API key` | The paste did not arrive (N is 0), or text with spaces was copied. Copy the key itself from the provider's website and paste with right-click or Ctrl+V. Or open `.env` in the repository root (`notepad .env`), put the key after `OPENAI_API_KEY=` or `GEMINI_API_KEY=` (no quotes, no spaces), save, run again |
+| `The provider rejected this key, so it was not saved` | The key is wrong, deleted, or (Gemini) an older unrestricted standard key, which Google now rejects. Create a new key in AI Studio; new keys are "auth keys" and do not start with `AIza` |
 | Replies fail with `provider_auth_failed`; the server log shows `401 Incorrect API key provided` | The value in `.env` is not a valid key. Fix it in `.env`, or empty it and let the script ask again, then restart the script |
 | `localhost refused to connect` | The server is not running yet: wait until the window prints `Ready: http://localhost:8000` (the browser opens by itself), and keep that window open |
 | `Python 3.12 or newer is required` | Install Python from <https://www.python.org/downloads/> (tick "Add python.exe to PATH" or use the `py` launcher) |

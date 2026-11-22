@@ -106,6 +106,27 @@ function Get-OllamaModels([string] $BaseUrl) {
 
 $localOllama = 'http://127.0.0.1:11434'
 
+# Asks the provider whether it accepts the key (a cheap list-models call):
+# $true, $false (rejected) or $null (could not check, e.g. offline).
+function Test-KeyWithProvider([string] $KeyName, [string] $Key) {
+    if ($KeyName -eq 'GEMINI_API_KEY') {
+        $uri = 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1'
+        $headers = @{ 'x-goog-api-key' = $Key }
+    } else {
+        $uri = 'https://api.openai.com/v1/models'
+        $headers = @{ Authorization = "Bearer $Key" }
+    }
+    try {
+        Invoke-RestMethod -Uri $uri -Headers $headers -TimeoutSec 15 | Out-Null
+        return $true
+    } catch {
+        $status = $null
+        if ($_.Exception.Response) { $status = [int]$_.Exception.Response.StatusCode }
+        if ($status -in 400, 401, 403) { return $false }
+        return $null
+    }
+}
+
 # --- 1. Configuration ---------------------------------------------------------------
 Write-Step 'Configuration (.env)'
 if (-not (Test-Path $envFile)) {
@@ -141,14 +162,14 @@ if ($AddKey -or -not (Test-ProviderKey $envText)) {
     Write-Host ''
     if ($AddKey) {
         Write-Host 'Add an API key (replaces an earlier key of the same provider):' -ForegroundColor Yellow
-        Write-Host '  Gemini (free tier, also enables voice mode): https://aistudio.google.com/apikey (starts with AIza)'
-        Write-Host '  OpenAI: https://platform.openai.com/api-keys (starts with sk-)'
+        Write-Host '  Gemini (free tier, also enables voice mode): https://aistudio.google.com/apikey'
+        Write-Host '  OpenAI: https://platform.openai.com/api-keys'
     } else {
         Write-Host 'The app needs an AI model to answer. Either:' -ForegroundColor Yellow
         Write-Host '  a) a free local model, no key: install Ollama from https://ollama.com/download,'
         Write-Host '     run "ollama pull gemma4:e4b", then press Ctrl+C here and run this again; or'
-        Write-Host '  b) an API key: https://platform.openai.com/api-keys (starts with sk-)'
-        Write-Host '     or https://aistudio.google.com/apikey (Gemini, starts with AIza).'
+        Write-Host '  b) an API key: https://aistudio.google.com/apikey (Gemini, free tier)'
+        Write-Host '     or https://platform.openai.com/api-keys (OpenAI).'
     }
     Write-Host '  The key is saved only in .env on this PC and never sent to the browser.'
     Write-Host ''
@@ -164,14 +185,36 @@ if ($AddKey -or -not (Test-ProviderKey $envText)) {
     # drop those markers and other control characters, then surrounding spaces and quotes.
     $key = ($raw -replace '\x1b\[20[01]~', '' -replace '[\x00-\x1f\x7f]', '').Trim().Trim('"', "'")
     $raw = $null
-    if ($key -match '^AIza[0-9A-Za-z_-]{30,}$') {
-        $keyName = 'GEMINI_API_KEY'
-    } elseif ($key -match '^sk-[0-9A-Za-z_-]{20,}$') {
-        $keyName = 'OPENAI_API_KEY'
-    } else {
+    if ($key -notmatch '^[\x21-\x7e]{20,512}$') {
         # Never echo the input: it may be a real key with a typo.
-        Stop-WithError ("The pasted text ($($key.Length) characters) is not an OpenAI key (sk-...) or a Gemini key (AIza...). " +
+        Stop-WithError ("The pasted text ($($key.Length) characters, with spaces or other characters keys do not have) is not an API key. " +
             'Copy the key itself from the provider''s website and run this again.')
+    }
+    if ($key.StartsWith('sk-')) {
+        $keyName = 'OPENAI_API_KEY'
+    } elseif ($key.StartsWith('AIza')) {
+        $keyName = 'GEMINI_API_KEY'  # a standard Google API key
+    } else {
+        # Gemini "auth keys" (every key AI Studio creates since 2026-05-28) have another format.
+        $answer = Read-Host 'Is this a Gemini key or an OpenAI key? Type G or O and press Enter [G]'
+        $keyName = if ($answer -match '^\s*[oO]') { 'OPENAI_API_KEY' } else { 'GEMINI_API_KEY' }
+    }
+
+    Write-Host 'Checking the key with the provider...'
+    $accepted = Test-KeyWithProvider $keyName $key
+    if ($accepted -eq $false) {
+        $key = $null
+        $hint = if ($keyName -eq 'GEMINI_API_KEY') {
+            'Create a new key at https://aistudio.google.com/apikey (Google rejects unrestricted older keys).'
+        } else {
+            'Check the key and that the OpenAI account has credit.'
+        }
+        Stop-WithError "The provider rejected this key, so it was not saved. $hint"
+    }
+    if ($null -eq $accepted) {
+        Write-Host 'Could not reach the provider to check the key (no internet?). Saving it anyway.' -ForegroundColor Yellow
+    } else {
+        Write-Host 'The provider accepted the key.'
     }
     $envText = Set-EnvValue $envText $keyName $key
     [IO.File]::WriteAllText($envFile, $envText, $utf8)
