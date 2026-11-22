@@ -55,7 +55,8 @@ model: free and local with [Ollama](https://ollama.com/download) (no key, e.g.
 3. The script installs the backend, creates the database, builds the web app and
    opens <http://localhost:8000>. Create an account and start chatting.
 
-Keep the window open while you use the app (Ctrl+C stops it). Accounts and
+Keep the window open while you use the app (Ctrl+C stops it). Voice mode needs
+Gemini or OpenAI: add a free Gemini key next to Ollama with `start-local.cmd -AddKey`. Accounts and
 conversations stay on your PC in `backend/data/`. Details:
 [docs/setup.md](docs/setup.md#0-run-it-on-this-pc-one-command-windows).
 

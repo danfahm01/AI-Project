@@ -35,7 +35,8 @@ on `PATH`) and an AI model: a free local one through [Ollama](#2c-local-models-o
    browser allows the microphone on `localhost`.
 
 Keep the window open while you use the app; **Ctrl+C** stops it. Options:
-`-Port 8080`, `-RebuildWeb`, `-NoBrowser`. The server listens on `127.0.0.1`
+`-Port 8080`, `-RebuildWeb`, `-NoBrowser`, and `-AddKey` (asks for an OpenAI or
+Gemini key even when Ollama is already set up, e.g. to add voice mode). The server listens on `127.0.0.1`
 only, so other devices on the network cannot reach it.
 
 ## 1. Prerequisites
@@ -122,7 +123,16 @@ The app lists every installed chat model (embedding-only models are left out)
 and picks up models pulled later within about 15 seconds; reload the page to see
 them. Limit the list with `OLLAMA_ALLOWED_MODELS` and choose the default with
 `OLLAMA_DEFAULT_MODEL`. The first reply after a pause takes longer while Ollama
-loads the model into memory. With Docker, use
+loads the model into memory.
+
+**Voice mode next to local models.** Ollama has no speech-to-speech model (its
+text-to-speech model, Phonon, needs Apple Silicon and has no Indonesian voice), so
+voice mode needs Gemini or OpenAI. A free Gemini key is enough: stop the server
+(Ctrl+C), run `start-local.cmd -AddKey`, paste the key. Text chats can stay on the
+local model (pick it in the model menu); voice mode uses Gemini Live
+(`gemini-3.8-live`, free of charge on the Free Tier as of 2026-11-22, where Google
+may use the data to improve its products). With both configured, new chats default
+to Gemini; set `DEFAULT_AI_PROVIDER=ollama` to keep the local model as default. With Docker, use
 `OLLAMA_BASE_URL=http://host.docker.internal:11434`.
 
 ### Voice mode (OpenAI Realtime)

@@ -24,6 +24,10 @@
 .PARAMETER NoBrowser
     Do not open the browser when the server is ready.
 
+.PARAMETER AddKey
+    Ask for an OpenAI or Gemini key even if a provider is already set up, for
+    example to add Gemini (voice mode) next to local Ollama models.
+
 .EXAMPLE
     .\start-local.cmd
 
@@ -34,7 +38,8 @@
 param(
     [ValidateRange(1024, 65535)] [int] $Port = 8000,
     [switch] $RebuildWeb,
-    [switch] $NoBrowser
+    [switch] $NoBrowser,
+    [switch] $AddKey
 )
 
 $ErrorActionPreference = 'Stop'
@@ -132,14 +137,20 @@ if (-not (Test-ProviderKey $envText) -and ($null -ne (Get-OllamaModels $localOll
     Write-Host "Found Ollama on this PC: using its models (OLLAMA_BASE_URL=$localOllama in .env)"
 }
 
-if (-not (Test-ProviderKey $envText)) {
+if ($AddKey -or -not (Test-ProviderKey $envText)) {
     Write-Host ''
-    Write-Host 'The app needs an AI model to answer. Either:' -ForegroundColor Yellow
-    Write-Host '  a) a free local model, no key: install Ollama from https://ollama.com/download,'
-    Write-Host '     run "ollama pull gemma4:e4b", then press Ctrl+C here and run this again; or'
-    Write-Host '  b) an API key: https://platform.openai.com/api-keys (starts with sk-)'
-    Write-Host '     or https://aistudio.google.com/apikey (Gemini, starts with AIza).'
-    Write-Host '     It is saved only in .env on this PC and never sent to the browser.'
+    if ($AddKey) {
+        Write-Host 'Add an API key (replaces an earlier key of the same provider):' -ForegroundColor Yellow
+        Write-Host '  Gemini (free tier, also enables voice mode): https://aistudio.google.com/apikey (starts with AIza)'
+        Write-Host '  OpenAI: https://platform.openai.com/api-keys (starts with sk-)'
+    } else {
+        Write-Host 'The app needs an AI model to answer. Either:' -ForegroundColor Yellow
+        Write-Host '  a) a free local model, no key: install Ollama from https://ollama.com/download,'
+        Write-Host '     run "ollama pull gemma4:e4b", then press Ctrl+C here and run this again; or'
+        Write-Host '  b) an API key: https://platform.openai.com/api-keys (starts with sk-)'
+        Write-Host '     or https://aistudio.google.com/apikey (Gemini, starts with AIza).'
+    }
+    Write-Host '  The key is saved only in .env on this PC and never sent to the browser.'
     Write-Host ''
     # Hidden input: the key is not shown on screen or kept in the console history.
     $secure = Read-Host 'Paste the key and press Enter (nothing is shown while you paste)' -AsSecureString

@@ -24,7 +24,7 @@
 | The first reply takes long, later ones are quick | Ollama loads the model into memory on first use (and after 5 idle minutes). Normal |
 | Replies are slow | The model does not fit in the GPU memory and partly runs on the CPU. Use a smaller model (`gemma4:e2b`) or close other GPU programs |
 | `ollama` is not recognized in a terminal | Open a new terminal after installing Ollama, or use `%LOCALAPPDATA%\Programs\Ollama\ollama.exe` |
-| The voice button says voice is not available | Ollama models are text only; voice mode needs OpenAI or Gemini |
+| The voice button says voice is not available | Ollama models are text only; voice mode needs Gemini or OpenAI. Add a free Gemini key: stop the server, run `start-local.cmd -AddKey` (setup.md, section 2c) |
 
 ## Windows: "The filename or extension is too long" / "Failed to canonicalize path ... (122)"
 
