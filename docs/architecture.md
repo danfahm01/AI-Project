@@ -21,7 +21,7 @@ else exists in the code today.
 ┌──────────────────────────── FastAPI backend ───────────────────────┐   ┌──────────────────────────┐
 │ api/v1 (routers) → services → repositories → models (SQLAlchemy)    │   │ OpenAI Realtime API       │
 │ schemas (Pydantic)   core (config, security, errors, rate limit)    │──▶│ Google Gemini Live API    │
-│ ai_providers (adapter interface + registry; OpenAI, Gemini)         │   │ (server-side keys only)   │
+│ ai_providers (adapter interface + registry; OpenAI, Gemini, Claude) │   │ (server-side keys only)   │
 └───────┬───────────────────────────────┬────────────────────────────┘   └──────────────────────────┘
         ▼                               ▼
    PostgreSQL (SQLite for local dev)   Redis (rate limiting; in-memory fallback in dev)
@@ -58,8 +58,9 @@ through one adapter interface, and a registry picks the adapter from configurati
 
 `ProviderRegistry` holds the adapters that are configured (API key or URL present
 and enabled), resolves the default (`DEFAULT_AI_PROVIDER`, else the first configured),
-and rejects unknown providers. Three adapters exist: `openai_provider.py`,
-`gemini_provider.py` and `ollama_provider.py` (local models through Ollama's
+and rejects unknown providers. Four adapters exist: `openai_provider.py`,
+`gemini_provider.py`, `anthropic_provider.py` (Claude, text chat with images and
+PDFs, no voice) and `ollama_provider.py` (local models through Ollama's
 `/api/chat`, no key, text and images only; a provider without models, such as
 Ollama that is not running, is left out of `/providers`). Tests also use a
 **test-only** mock adapter (`backend/tests/fakes`).

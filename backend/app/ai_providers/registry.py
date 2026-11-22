@@ -76,6 +76,11 @@ def build_provider_registry(settings: Settings) -> ProviderRegistry:
 
         registry.register(GeminiProvider.from_settings(settings))
         logger.info("Gemini provider enabled with models: %s", ", ".join(settings.gemini_models))
+    if settings.anthropic_api_key is not None:
+        from app.ai_providers.anthropic_provider import AnthropicProvider
+
+        registry.register(AnthropicProvider.from_settings(settings))
+        logger.info("Anthropic provider enabled with models: %s", ", ".join(settings.anthropic_models))
     if settings.ollama_base_url is not None:
         from app.ai_providers.ollama_provider import OllamaProvider
 
@@ -83,6 +88,7 @@ def build_provider_registry(settings: Settings) -> ProviderRegistry:
         logger.info("Ollama provider enabled at %s", settings.ollama_base_url)
     if not registry.list():
         logger.warning(
-            "No AI provider configured: set OPENAI_API_KEY, GEMINI_API_KEY or OLLAMA_BASE_URL to enable chat replies"
+            "No AI provider configured: set OPENAI_API_KEY, GEMINI_API_KEY, ANTHROPIC_API_KEY or OLLAMA_BASE_URL "
+            "to enable chat replies"
         )
     return registry

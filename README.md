@@ -5,12 +5,13 @@ and the web. A FastAPI backend handles accounts, conversation history and secure
 access to AI providers (OpenAI Realtime and Google Gemini Live, behind a
 provider-independent adapter).
 
-> **Status: all six phases are complete.** Three providers sit behind one adapter
-> interface: OpenAI, Google Gemini, and local models through Ollama (no API key).
+> **Status: all six phases are complete.** Four providers sit behind one adapter
+> interface: OpenAI, Google Gemini, Anthropic Claude, and local models through
+> Ollama (no API key).
 >
 > - **Text chat** streams over a WebSocket, with Markdown, code highlighting and
->   typeset math formulas (LaTeX), stop, regenerate and edit-and-resubmit. Replies come from OpenAI's Responses API
->   or from Gemini (`gemini-4-hydrogen` and others).
+>   typeset math formulas (LaTeX), stop, regenerate and edit-and-resubmit. Replies come from OpenAI's Responses API,
+>   Gemini (`gemini-4-hydrogen` and others) or Claude (`claude-opus-5-5` and others).
 > - **Attachments:** images (PNG, JPEG, WEBP, or a camera photo on mobile) and PDFs
 >   can be sent with a message. They appear as thumbnails or chips, and are passed to
 >   models that can read them.
@@ -25,7 +26,7 @@ provider-independent adapter).
 >   and GitHub Actions that test the whole stack and build Android, Windows,
 >   Linux, macOS, iOS and web releases. See [docs/deployment.md](docs/deployment.md).
 >
-> Set `OPENAI_API_KEY`, `GEMINI_API_KEY` and/or `OLLAMA_BASE_URL` in `.env`. Without
+> Set `OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY` and/or `OLLAMA_BASE_URL` in `.env`. Without
 > any, messages are still saved and the app says that no provider is configured. See
 > [docs/architecture.md](docs/architecture.md#8-phase-status).
 
@@ -46,7 +47,7 @@ docker-compose.prod.yml  Production overlay: HTTPS/WSS, web app, Let's Encrypt
 
 Needs Python 3.12+, Flutter 3.50+ (only to build the web app once) and an AI
 model: free and local with [Ollama](https://ollama.com/download) (no key, e.g.
-`ollama pull gemma4:e4b`), or an OpenAI or Gemini API key.
+`ollama pull gemma4:e4b`), or a Gemini, Claude or OpenAI API key.
 
 1. Double-click **`start-local.cmd`** (or run `.\start-local.cmd` in a terminal).
 2. If Ollama runs, it is used without asking. Otherwise the script asks for a
@@ -56,7 +57,8 @@ model: free and local with [Ollama](https://ollama.com/download) (no key, e.g.
    opens <http://localhost:8000>. Create an account and start chatting.
 
 Keep the window open while you use the app (Ctrl+C stops it). Voice mode needs
-Gemini or OpenAI: add a free Gemini key next to Ollama with `start-local.cmd -AddKey`. Accounts and
+Gemini or OpenAI: add a free Gemini key next to Ollama with `start-local.cmd -AddKey`. The same
+command adds a Claude key (`sk-ant-...`, paid API credit from platform.claude.com). Accounts and
 conversations stay on your PC in `backend/data/`. Details:
 [docs/setup.md](docs/setup.md#0-run-it-on-this-pc-one-command-windows).
 
@@ -90,7 +92,7 @@ Android and Windows builds, is in [docs/setup.md](docs/setup.md).
 ## Tests
 
 ```powershell
-cd backend;          .venv\Scripts\pytest -q --cov=app   # 191 tests (1 needs REDIS_TEST_URL), 96 % coverage
+cd backend;          .venv\Scripts\pytest -q --cov=app   # 214 tests (1 needs REDIS_TEST_URL), 96 % coverage
 cd apps/flutter_app; flutter analyze; flutter test       # 151 tests
 ```
 

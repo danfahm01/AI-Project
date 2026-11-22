@@ -91,7 +91,8 @@ The server log has the provider's full message.
 
 | Message / code | What to do |
 |---|---|
-| "No AI provider is configured" (`provider_not_available`) | Set `OPENAI_API_KEY` and/or `GEMINI_API_KEY` and restart the backend |
+| "No AI provider is configured" (`provider_not_available`) | Set `OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY` or `OLLAMA_BASE_URL` and restart the backend |
+| `provider_out_of_credit` (Claude) | The Claude Console account has no API credit or reached its spend limit. Add credit at <https://platform.claude.com>; a claude.ai Pro/Max subscription does not cover the API |
 | `provider_auth_failed` | The key is wrong, revoked, or lacks access to the model (Gemini reports an invalid key as HTTP 400 "API key not valid"; it is mapped here too) |
 | `provider_content_blocked` | The provider's safety system declined the request (Gemini `promptFeedback.blockReason`, or a safety stop before any text). Rephrase the message |
 | `provider_rate_limited` | OpenAI rate limit or quota reached; check usage and billing |

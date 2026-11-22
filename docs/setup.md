@@ -8,7 +8,7 @@ one local server at <http://localhost:8000>. No Docker, Visual Studio or Nginx.
 Needs Python 3.12+, Flutter 3.50+ (only to build the web app; the script also
 finds it in `C:\src\flutter` or `%USERPROFILE%\develop\flutter` when it is not
 on `PATH`) and an AI model: a free local one through [Ollama](#2c-local-models-ollama-no-api-key)
-(no key), or an OpenAI or Gemini API key.
+(no key), or a Gemini, Claude or OpenAI API key.
 
 1. Double-click `start-local.cmd` in the repository root, or run it in a terminal:
 
@@ -19,12 +19,13 @@ on `PATH`) and an AI model: a free local one through [Ollama](#2c-local-models-o
 2. If Ollama runs on the PC and no key is set, the script uses Ollama
    (`OLLAMA_BASE_URL=http://127.0.0.1:11434` in `.env`) and asks nothing.
    Otherwise it asks for a key: paste it and press Enter (the input is hidden).
-   A key starting with `sk-` is an OpenAI key, one starting with `AIza` a
-   (standard) Gemini key; for any other key, such as the Gemini "auth keys" AI
-   Studio creates since 2026-05-28, the script asks which provider it belongs to.
-   It checks the key with the provider (a list-models call), then saves it as
-   `OPENAI_API_KEY` or `GEMINI_API_KEY` in `.env` on this PC; the browser never
-   receives it. To change it later, run `start-local.cmd -AddKey` or edit `.env`.
+   A key starting with `sk-ant-` is a Claude key, other `sk-` keys are OpenAI
+   keys and `AIza` keys (standard) Gemini keys; for any other key, such as the
+   Gemini "auth keys" AI Studio creates since 2026-05-28, the script asks which
+   provider it belongs to. It checks the key with the provider (a free
+   list-models call), then saves it as `OPENAI_API_KEY`, `GEMINI_API_KEY` or
+   `ANTHROPIC_API_KEY` in `.env` on this PC; the browser never receives it. To
+   change it later, run `start-local.cmd -AddKey` or edit `.env`.
 3. The script (`scripts/start-local.ps1`) then:
    - creates `.env` with a random `JWT_SECRET`, so sign-ins survive restarts;
    - creates `backend\.venv` and installs the backend (again only when
@@ -39,8 +40,9 @@ on `PATH`) and an AI model: a free local one through [Ollama](#2c-local-models-o
    browser allows the microphone on `localhost`.
 
 Keep the window open while you use the app; **Ctrl+C** stops it. Options:
-`-Port 8080`, `-RebuildWeb`, `-NoBrowser`, and `-AddKey` (asks for an OpenAI or
-Gemini key even when Ollama is already set up, e.g. to add voice mode). The server listens on `127.0.0.1`
+`-Port 8080`, `-RebuildWeb`, `-NoBrowser`, and `-AddKey` (asks for a Gemini,
+Claude or OpenAI key even when a provider is already set up, e.g. to add voice
+mode or Claude; see section 2e). The server listens on `127.0.0.1`
 only, so other devices on the network cannot reach it.
 
 ## 1. Prerequisites
@@ -82,9 +84,10 @@ then `backend/.env` (later wins). Key values:
 | `CORS_ALLOW_LOCALHOST` | `true` | Allows the Flutter web dev server; must be `false` in production |
 | `CORS_ORIGINS` | empty | Comma-separated production origins |
 | `OPENAI_API_KEY`, `GEMINI_API_KEY` | empty | Server-side only; each enables that provider's text chat and voice |
+| `ANTHROPIC_API_KEY` | empty | Server-side only; enables Claude text chat (no voice); see section 2e |
 | `OPENAI_REALTIME_MODEL` | `gpt-realtime-2.1` | OpenAI voice model; empty disables OpenAI voice |
 | `GEMINI_LIVE_MODEL` | `gemini-3.8-live` | Gemini voice model; empty disables Gemini voice |
-| `DEFAULT_AI_PROVIDER` | empty | `openai` or `gemini` when both are configured; empty = OpenAI (first registered) |
+| `DEFAULT_AI_PROVIDER` | empty | `openai`, `gemini`, `anthropic` or `ollama` when several are configured; empty = the first registered (in that order) |
 | `OLLAMA_BASE_URL` | empty | Local models through Ollama, no key (`http://127.0.0.1:11434`); see section 2c |
 | `WEB_APP_DIR` | empty | A Flutter web build (`API_BASE_URL=/`) to serve at `/` from the API server; set by `start-local.ps1` |
 
@@ -206,6 +209,30 @@ cd backend
 $env:GEMINI_API_KEY="local-test"; $env:GEMINI_BASE_URL="http://127.0.0.1:9200/"
 .venv\Scripts\uvicorn app.main:create_app --factory --port 8000
 ```
+
+## 2e. Enabling Anthropic Claude
+
+Claude answers text chats, with images and PDFs; it has no realtime voice API,
+so voice mode keeps using Gemini or OpenAI.
+
+1. Create an API key in the Claude Console at
+   <https://platform.claude.com/settings/keys> (it starts with `sk-ant-`) and add
+   API credit there. The API is billed per use and is separate from a claude.ai
+   Pro or Max subscription: a subscription does not include API access.
+2. Put it in `.env` as `ANTHROPIC_API_KEY=...`, or run `start-local.cmd -AddKey`
+   and paste it. The script checks the key, saves it, and sets
+   `DEFAULT_AI_PROVIDER=anthropic` when no default was chosen, so new chats start
+   with Claude.
+3. Optionally choose models: `ANTHROPIC_MODELS` / `ANTHROPIC_DEFAULT_MODEL`. The
+   defaults are Claude Opus 5.5 (default), Claude Sonnet 5.5 and Claude Haiku 5.5
+   (Anthropic's model table of 2026-11-03).
+4. Restart the backend. Claude's models appear in the chat model picker.
+
+The adapter (`ai_providers/anthropic_provider.py`) uses the official `anthropic`
+SDK: streaming, prompt caching of the conversation, the pseudonymous user id in
+`metadata.user_id`, and the server-side refusal fallback on the models that
+support it. An empty or used-up credit balance shows as "The Claude account has
+no API credit left".
 
 ## 2d. Images and PDFs
 

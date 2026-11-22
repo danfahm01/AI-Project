@@ -139,6 +139,19 @@ class Settings(BaseSettings):
     )
     gemini_live_default_voice: str = "Kore"
 
+    # Anthropic Claude (text chat; Claude has no realtime voice API). Key from
+    # https://platform.claude.com/settings/keys ("sk-ant-..."), billed per token and
+    # separate from a claude.ai subscription.
+    anthropic_api_key: SecretStr | None = None
+    # Optional override (e.g. a test server). Empty = official API.
+    anthropic_base_url: str | None = None
+    # Current models from the claude-api model table (2026-11-03): Opus 5.5 is the
+    # default; Sonnet 5.5 and Haiku 5.5 are the faster, cheaper choices.
+    anthropic_models: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]
+    )
+    anthropic_default_model: str = "claude-opus-5-5"
+
     # Ollama: models that run on this computer, no API key. Empty = disabled; Ollama
     # listens on http://localhost:11434 by default (docs.ollama.com, 2026-11-22).
     # (Not OLLAMA_MODELS or OLLAMA_HOST: Ollama itself reads those.)
@@ -211,6 +224,7 @@ class Settings(BaseSettings):
         "openai_realtime_voices",
         "gemini_models",
         "gemini_live_voices",
+        "anthropic_models",
         "ollama_allowed_models",
         mode="before",
     )
@@ -229,6 +243,8 @@ class Settings(BaseSettings):
         "gemini_api_key",
         "gemini_base_url",
         "gemini_live_model",
+        "anthropic_api_key",
+        "anthropic_base_url",
         "ollama_base_url",
         "ollama_default_model",
         "web_app_dir",
@@ -253,7 +269,11 @@ class Settings(BaseSettings):
             if insecure_origins:
                 raise ValueError("CORS_ORIGINS must list https:// origins (no '*') in production")
             # The provider API keys travel to these URLs: never over plain HTTP (or to a test server).
-            for name, url in (("OPENAI_BASE_URL", self.openai_base_url), ("GEMINI_BASE_URL", self.gemini_base_url)):
+            for name, url in (
+                ("OPENAI_BASE_URL", self.openai_base_url),
+                ("GEMINI_BASE_URL", self.gemini_base_url),
+                ("ANTHROPIC_BASE_URL", self.anthropic_base_url),
+            ):
                 if url is not None and not url.startswith("https://"):
                     raise ValueError(f"{name} must be an https:// URL in production")
             if self.is_sqlite:

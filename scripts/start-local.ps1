@@ -25,8 +25,8 @@
     Do not open the browser when the server is ready.
 
 .PARAMETER AddKey
-    Ask for an OpenAI or Gemini key even if a provider is already set up, for
-    example to add Gemini (voice mode) next to local Ollama models.
+    Ask for a Gemini, Claude or OpenAI key even if a provider is already set up,
+    for example to add Gemini (voice mode) or Claude next to local Ollama models.
 
 .EXAMPLE
     .\start-local.cmd
@@ -74,8 +74,8 @@ function Find-Tool([string] $Name, [string[]] $Candidates) {
 }
 
 function Test-ProviderKey([string] $EnvText) {
-    if ($env:OPENAI_API_KEY -or $env:GEMINI_API_KEY -or $env:OLLAMA_BASE_URL) { return $true }
-    return $EnvText -match '(?m)^[ \t]*(OPENAI_API_KEY|GEMINI_API_KEY|OLLAMA_BASE_URL)[ \t]*=[ \t]*[^\s#]'
+    if ($env:OPENAI_API_KEY -or $env:GEMINI_API_KEY -or $env:ANTHROPIC_API_KEY -or $env:OLLAMA_BASE_URL) { return $true }
+    return $EnvText -match '(?m)^[ \t]*(OPENAI_API_KEY|GEMINI_API_KEY|ANTHROPIC_API_KEY|OLLAMA_BASE_URL)[ \t]*=[ \t]*[^\s#]'
 }
 
 # The value of NAME=value in .env (process environment wins), or $null.
@@ -112,6 +112,10 @@ function Test-KeyWithProvider([string] $KeyName, [string] $Key) {
     if ($KeyName -eq 'GEMINI_API_KEY') {
         $uri = 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1'
         $headers = @{ 'x-goog-api-key' = $Key }
+    } elseif ($KeyName -eq 'ANTHROPIC_API_KEY') {
+        # Listing models costs nothing, so a key without credit still passes here.
+        $uri = 'https://api.anthropic.com/v1/models?limit=1'
+        $headers = @{ 'x-api-key' = $Key; 'anthropic-version' = '2026-10-21' }
     } else {
         $uri = 'https://api.openai.com/v1/models'
         $headers = @{ Authorization = "Bearer $Key" }
@@ -163,13 +167,14 @@ if ($AddKey -or -not (Test-ProviderKey $envText)) {
     if ($AddKey) {
         Write-Host 'Add an API key (replaces an earlier key of the same provider):' -ForegroundColor Yellow
         Write-Host '  Gemini (free tier, also enables voice mode): https://aistudio.google.com/apikey'
+        Write-Host '  Claude (paid per use, text chat): https://platform.claude.com/settings/keys'
         Write-Host '  OpenAI: https://platform.openai.com/api-keys'
     } else {
         Write-Host 'The app needs an AI model to answer. Either:' -ForegroundColor Yellow
         Write-Host '  a) a free local model, no key: install Ollama from https://ollama.com/download,'
         Write-Host '     run "ollama pull gemma4:e4b", then press Ctrl+C here and run this again; or'
-        Write-Host '  b) an API key: https://aistudio.google.com/apikey (Gemini, free tier)'
-        Write-Host '     or https://platform.openai.com/api-keys (OpenAI).'
+        Write-Host '  b) an API key: https://aistudio.google.com/apikey (Gemini, free tier),'
+        Write-Host '     https://platform.claude.com/settings/keys (Claude) or https://platform.openai.com/api-keys (OpenAI).'
     }
     Write-Host '  The key is saved only in .env on this PC and never sent to the browser.'
     Write-Host ''
@@ -190,7 +195,12 @@ if ($AddKey -or -not (Test-ProviderKey $envText)) {
         Stop-WithError ("The pasted text ($($key.Length) characters, with spaces or other characters keys do not have) is not an API key. " +
             'Copy the key itself from the provider''s website and run this again.')
     }
-    if ($key.StartsWith('sk-')) {
+    if ($key.StartsWith('sk-ant-admin')) {
+        Stop-WithError ('This is a Claude Admin API key, which cannot chat. Create a normal API key at ' +
+            'https://platform.claude.com/settings/keys and run this again.')
+    } elseif ($key.StartsWith('sk-ant-')) {
+        $keyName = 'ANTHROPIC_API_KEY'  # Claude API key (Claude Console)
+    } elseif ($key.StartsWith('sk-')) {
         $keyName = 'OPENAI_API_KEY'
     } elseif ($key.StartsWith('AIza')) {
         $keyName = 'GEMINI_API_KEY'  # a standard Google API key
@@ -204,10 +214,10 @@ if ($AddKey -or -not (Test-ProviderKey $envText)) {
     $accepted = Test-KeyWithProvider $keyName $key
     if ($accepted -eq $false) {
         $key = $null
-        $hint = if ($keyName -eq 'GEMINI_API_KEY') {
-            'Create a new key at https://aistudio.google.com/apikey (Google rejects unrestricted older keys).'
-        } else {
-            'Check the key and that the OpenAI account has credit.'
+        $hint = switch ($keyName) {
+            'GEMINI_API_KEY' { 'Create a new key at https://aistudio.google.com/apikey (Google rejects unrestricted older keys).' }
+            'ANTHROPIC_API_KEY' { 'Check the key at https://platform.claude.com/settings/keys (it may be disabled or deleted).' }
+            default { 'Check the key and that the OpenAI account has credit.' }
         }
         Stop-WithError "The provider rejected this key, so it was not saved. $hint"
     }
@@ -217,9 +227,18 @@ if ($AddKey -or -not (Test-ProviderKey $envText)) {
         Write-Host 'The provider accepted the key.'
     }
     $envText = Set-EnvValue $envText $keyName $key
-    [IO.File]::WriteAllText($envFile, $envText, $utf8)
     $key = $null
+    if ($keyName -eq 'ANTHROPIC_API_KEY' -and -not (Get-EnvValue $envText 'DEFAULT_AI_PROVIDER')) {
+        # New chats start with Claude; other models stay one click away in the app.
+        $envText = Set-EnvValue $envText 'DEFAULT_AI_PROVIDER' 'anthropic'
+        Write-Host 'New chats now start with Claude (DEFAULT_AI_PROVIDER=anthropic in .env).'
+    }
+    [IO.File]::WriteAllText($envFile, $envText, $utf8)
     Write-Host "Saved $keyName in .env"
+    if ($keyName -eq 'ANTHROPIC_API_KEY') {
+        Write-Host ('Claude is billed per use from the API credit at https://platform.claude.com ' +
+            '(separate from a claude.ai subscription).') -ForegroundColor Yellow
+    }
 }
 
 # Ollama configured: say so now if it is not running or has no model yet.
