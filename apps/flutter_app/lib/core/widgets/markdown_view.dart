@@ -1,12 +1,15 @@
 import 'package:flutter/gestures.dart';
+import 'package:flutter_math_fork/flutter_math.dart' show Math, MathStyle;
 import 'package:markdown/markdown.dart' as md;
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'code_block.dart';
+import 'markdown_math.dart';
 
 /// Renders GitHub-flavoured Markdown (headings, emphasis, links, lists, task
-/// lists, block quotes, tables, inline code and highlighted code blocks) with
+/// lists, block quotes, tables, inline code and highlighted code blocks) and
+/// TeX math (`$...$`, `$$...$$`, `\(...\)`, `\[...\]`) as typeset formulas with
 /// the app's Material theme. Wrap in a `SelectionArea` to make it selectable.
 class MarkdownView extends StatefulWidget {
   const MarkdownView({super.key, required this.data, this.style});
@@ -22,8 +25,12 @@ class _MarkdownViewState extends State<MarkdownView> {
   late List<md.Node> _nodes = _parse(widget.data);
   List<TapGestureRecognizer> _recognizers = [];
 
-  static List<md.Node> _parse(String data) =>
-      md.Document(extensionSet: md.ExtensionSet.gitHubFlavored, encodeHtml: false).parse(data);
+  static List<md.Node> _parse(String data) => md.Document(
+    extensionSet: md.ExtensionSet.gitHubFlavored,
+    blockSyntaxes: mathBlockSyntaxes,
+    inlineSyntaxes: mathInlineSyntaxes,
+    encodeHtml: false,
+  ).parse(data);
 
   @override
   void didUpdateWidget(MarkdownView oldWidget) {
@@ -57,7 +64,22 @@ class _MarkdownViewState extends State<MarkdownView> {
   }
 }
 
-const _blockTags = {'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'ul', 'ol', 'blockquote', 'hr', 'table'};
+const _blockTags = {
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'pre',
+  'ul',
+  'ol',
+  'blockquote',
+  'hr',
+  'table',
+  mathBlockTag,
+};
 
 Future<void> openExternalLink(String? href) async {
   final uri = href == null ? null : Uri.tryParse(href);
@@ -122,9 +144,31 @@ class _MarkdownBuilder {
       ),
       'hr' => const Divider(height: 16),
       'table' => _table(element),
+      mathBlockTag => _displayMath(mathSource(element)),
       _ => _text(children, base),
     };
   }
+
+  /// A formula on its own line: centred, and scrollable when wider than the reply.
+  Widget _displayMath(String tex) => LayoutBuilder(
+    builder: (context, constraints) => SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minWidth: constraints.maxWidth),
+        child: Center(
+          child: Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: _math(tex, MathStyle.display, base)),
+        ),
+      ),
+    ),
+  );
+
+  Widget _math(String tex, MathStyle mathStyle, TextStyle style) => Math.tex(
+    tex,
+    mathStyle: mathStyle,
+    textStyle: style.copyWith(color: style.color ?? scheme.onSurface),
+    // TeX the renderer cannot handle stays readable as its source.
+    onErrorFallback: (_) => Text(tex, style: style.copyWith(fontFamily: monospaceFamily)),
+  );
 
   TextStyle _heading(double scale) =>
       base.copyWith(fontSize: (base.fontSize ?? 16) * scale, fontWeight: FontWeight.w700, height: 1.3);
@@ -168,6 +212,18 @@ class _MarkdownBuilder {
         return [_link(alt == null || alt.isEmpty ? 'image' : alt, node.attributes['src'], style)];
       case 'input': // GitHub task-list checkbox
         return [TextSpan(text: node.attributes.containsKey('checked') ? '☑ ' : '☐ ', style: style)];
+      case mathTag:
+        return [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: _math(
+              mathSource(node),
+              isDisplayMath(node) || hasTallParts(mathSource(node)) ? MathStyle.display : MathStyle.text,
+              style,
+            ),
+          ),
+        ];
       default:
         return _inlines(children, style);
     }
@@ -203,7 +259,10 @@ class _MarkdownBuilder {
       final marker = ordered ? '${number++}.' : (isTask ? '' : (depth.isEven ? '•' : '◦'));
       items.add(
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          // The marker sits on the first line's baseline, also when a formula
+          // makes that line taller.
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
           children: [
             SizedBox(
               width: ordered ? 28 : 18,

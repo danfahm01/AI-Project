@@ -8,8 +8,8 @@ provider-independent adapter).
 > **Status: all six phases are complete.** Three providers sit behind one adapter
 > interface: OpenAI, Google Gemini, and local models through Ollama (no API key).
 >
-> - **Text chat** streams over a WebSocket, with Markdown and code highlighting,
->   stop, regenerate and edit-and-resubmit. Replies come from OpenAI's Responses API
+> - **Text chat** streams over a WebSocket, with Markdown, code highlighting and
+>   typeset math formulas (LaTeX), stop, regenerate and edit-and-resubmit. Replies come from OpenAI's Responses API
 >   or from Gemini (`gemini-4-hydrogen` and others).
 > - **Attachments:** images (PNG, JPEG, WEBP, or a camera photo on mobile) and PDFs
 >   can be sent with a message. They appear as thumbnails or chips, and are passed to
@@ -91,7 +91,7 @@ Android and Windows builds, is in [docs/setup.md](docs/setup.md).
 
 ```powershell
 cd backend;          .venv\Scripts\pytest -q --cov=app   # 191 tests (1 needs REDIS_TEST_URL), 96 % coverage
-cd apps/flutter_app; flutter analyze; flutter test       # 139 tests
+cd apps/flutter_app; flutter analyze; flutter test       # 151 tests
 ```
 
 ## Documentation

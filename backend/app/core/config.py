@@ -153,7 +153,10 @@ class Settings(BaseSettings):
     # --- Chat behaviour -----------------------------------------------------------
     chat_system_prompt: str = (
         "You are a helpful, accurate assistant. Answer concisely, and use Markdown "
-        "(lists, tables, fenced code blocks with a language) when it improves readability."
+        "(lists, tables, fenced code blocks with a language) when it improves readability. "
+        # The app typesets these delimiters as formulas (apps/flutter_app markdown_math.dart).
+        "Write math in LaTeX: $...$ within a sentence and $$...$$ on its own line for "
+        "larger formulas, never inside code blocks."
     )
     chat_max_output_tokens: int | None = Field(default=None, ge=1)
     # Conversation history sent to the model, newest first, until this budget is used.
