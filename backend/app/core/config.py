@@ -139,6 +139,14 @@ class Settings(BaseSettings):
     )
     gemini_live_default_voice: str = "Kore"
 
+    # Ollama: models that run on this computer, no API key. Empty = disabled; Ollama
+    # listens on http://localhost:11434 by default (docs.ollama.com, 2026-11-22).
+    # (Not OLLAMA_MODELS or OLLAMA_HOST: Ollama itself reads those.)
+    ollama_base_url: str | None = None
+    # Installed models offered in the app (comma-separated). Empty = every installed chat model.
+    ollama_allowed_models: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    ollama_default_model: str | None = None
+
     default_ai_provider: str | None = None
     ai_request_timeout_seconds: float = Field(default=120, gt=0, le=600)
 
@@ -200,6 +208,7 @@ class Settings(BaseSettings):
         "openai_realtime_voices",
         "gemini_models",
         "gemini_live_voices",
+        "ollama_allowed_models",
         mode="before",
     )
     @classmethod
@@ -217,6 +226,8 @@ class Settings(BaseSettings):
         "gemini_api_key",
         "gemini_base_url",
         "gemini_live_model",
+        "ollama_base_url",
+        "ollama_default_model",
         "web_app_dir",
         mode="before",
     )

@@ -238,6 +238,8 @@ class ChatService:
             return {"type": type_, "request_id": request_id, "conversation_id": str(conversation_id), **payload}
 
         pending: list[dict[str, Any]] = []
+        # Before the transaction: Ollama may have new models (network call, rate limited).
+        await self._registry.refresh()
         async with self._sessionmaker() as session:
             conversations = ConversationRepository(session)
             messages = MessageRepository(session)

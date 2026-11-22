@@ -4,13 +4,27 @@
 
 | Message | Cause and fix |
 |---|---|
-| `No OPENAI_API_KEY or GEMINI_API_KEY in .env` | Open `.env` in the repository root, paste the key after `OPENAI_API_KEY=` (no quotes, no spaces), save, run again |
+| `The pasted text (N characters) is not an OpenAI key (sk-...) or a Gemini key (AIza...)` | The paste did not arrive (N is 0), or something else was copied. Copy the key itself from the provider's website (OpenAI keys start with `sk-`, Gemini keys with `AIza`) and paste with right-click or Ctrl+V. Or open `.env` in the repository root (`notepad .env`), put the key after `OPENAI_API_KEY=` or `GEMINI_API_KEY=` (no quotes, no spaces), save, run again |
+| Replies fail with `provider_auth_failed`; the server log shows `401 Incorrect API key provided` | The value in `.env` is not a valid key. Fix it in `.env`, or empty it and let the script ask again, then restart the script |
+| `localhost refused to connect` | The server is not running yet: wait until the window prints `Ready: http://localhost:8000` (the browser opens by itself), and keep that window open |
 | `Python 3.12 or newer is required` | Install Python from <https://www.python.org/downloads/> (tick "Add python.exe to PATH" or use the `py` launcher) |
 | `Flutter is needed once to build the web app` | Install Flutter, or put it on `PATH`. Only the first run (and app changes) need it |
 | `Port 8000 is already in use` | Another program (or a second copy of the script) uses the port. Close it, or run `start-local.cmd -Port 8080` |
 | The page loads but replies say "No AI provider is configured" | The key line in `.env` is commented out or empty. Fix it and restart the script |
 | `provider_auth_failed` / `provider_rate_limited` under a reply | The key is wrong or the OpenAI account has no credit: check <https://platform.openai.com/settings/organization/billing> |
 | Old app version after changing the Flutter code | Run `start-local.cmd -RebuildWeb` |
+
+## Ollama (local models)
+
+| Symptom | Cause and fix |
+|---|---|
+| "Ollama is not running on this computer" under a reply | Start Ollama from the Start menu (its icon appears in the taskbar tray), then retry |
+| "No model available" in the app although `OLLAMA_BASE_URL` is set | Ollama is not running, or has no chat model: run `ollama pull gemma4:e4b`, wait about 15 s, reload the page |
+| "The selected model is not installed in Ollama" | The model was removed (`ollama rm`). Pick another one in the model menu, or pull it again |
+| The first reply takes long, later ones are quick | Ollama loads the model into memory on first use (and after 5 idle minutes). Normal |
+| Replies are slow | The model does not fit in the GPU memory and partly runs on the CPU. Use a smaller model (`gemma4:e2b`) or close other GPU programs |
+| `ollama` is not recognized in a terminal | Open a new terminal after installing Ollama, or use `%LOCALAPPDATA%\Programs\Ollama\ollama.exe` |
+| The voice button says voice is not available | Ollama models are text only; voice mode needs OpenAI or Gemini |
 
 ## Windows: "The filename or extension is too long" / "Failed to canonicalize path ... (122)"
 

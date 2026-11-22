@@ -8,16 +8,22 @@ router = APIRouter(prefix="/providers", tags=["providers"], dependencies=[Depend
 
 @router.get("", response_model=ProviderList, summary="AI providers and models available on this server")
 async def list_providers(registry: ProvidersDep) -> ProviderList:
-    default_id = registry.default_id
+    # Picks up models installed since the last check (Ollama), rate limited per provider.
+    await registry.refresh()
+    # A provider without models (Ollama not running yet) cannot answer: not offered.
+    usable = [(provider, provider.list_models()) for provider in registry.list()]
+    usable = [(provider, models) for provider, models in usable if models]
+    ids = [provider.id for provider, _ in usable]
+    default_id = registry.default_id if registry.default_id in ids else (ids[0] if ids else None)
     return ProviderList(
         items=[
             ProviderOut(
                 id=provider.id,
                 display_name=provider.display_name,
                 is_default=provider.id == default_id,
-                models=provider.list_models(),
+                models=models,
             )
-            for provider in registry.list()
+            for provider, models in usable
         ],
         default_provider=default_id,
     )

@@ -5,8 +5,8 @@ and the web. A FastAPI backend handles accounts, conversation history and secure
 access to AI providers (OpenAI Realtime and Google Gemini Live, behind a
 provider-independent adapter).
 
-> **Status: all six phases are complete.** Two providers, OpenAI and Google
-> Gemini, sit behind one adapter interface.
+> **Status: all six phases are complete.** Three providers sit behind one adapter
+> interface: OpenAI, Google Gemini, and local models through Ollama (no API key).
 >
 > - **Text chat** streams over a WebSocket, with Markdown and code highlighting,
 >   stop, regenerate and edit-and-resubmit. Replies come from OpenAI's Responses API
@@ -25,8 +25,8 @@ provider-independent adapter).
 >   and GitHub Actions that test the whole stack and build Android, Windows,
 >   Linux, macOS, iOS and web releases. See [docs/deployment.md](docs/deployment.md).
 >
-> Set `OPENAI_API_KEY` and/or `GEMINI_API_KEY` in `.env`. Without a key, messages are
-> still saved and the app says that no provider is configured. See
+> Set `OPENAI_API_KEY`, `GEMINI_API_KEY` and/or `OLLAMA_BASE_URL` in `.env`. Without
+> any, messages are still saved and the app says that no provider is configured. See
 > [docs/architecture.md](docs/architecture.md#8-phase-status).
 
 ## Repository layout
@@ -44,12 +44,14 @@ docker-compose.prod.yml  Production overlay: HTTPS/WSS, web app, Let's Encrypt
 
 ## Run it on your PC (one command, Windows)
 
-Needs Python 3.12+, Flutter 3.50+ (only to build the web app once) and an OpenAI
-or Gemini API key.
+Needs Python 3.12+, Flutter 3.50+ (only to build the web app once) and an AI
+model: free and local with [Ollama](https://ollama.com/download) (no key, e.g.
+`ollama pull gemma4:e4b`), or an OpenAI or Gemini API key.
 
 1. Double-click **`start-local.cmd`** (or run `.\start-local.cmd` in a terminal).
-2. The first time, `.env` opens in Notepad: paste your key after `OPENAI_API_KEY=`
-   (or `GEMINI_API_KEY=`), save and close it.
+2. If Ollama runs, it is used without asking. Otherwise the script asks for a
+   key: paste it and press Enter (input is hidden). It is saved in `.env` on
+   your PC only.
 3. The script installs the backend, creates the database, builds the web app and
    opens <http://localhost:8000>. Create an account and start chatting.
 
@@ -87,7 +89,7 @@ Android and Windows builds, is in [docs/setup.md](docs/setup.md).
 ## Tests
 
 ```powershell
-cd backend;          .venv\Scripts\pytest -q --cov=app   # 165 tests (1 needs REDIS_TEST_URL), 96 % coverage
+cd backend;          .venv\Scripts\pytest -q --cov=app   # 188 tests (1 needs REDIS_TEST_URL), 96 % coverage
 cd apps/flutter_app; flutter analyze; flutter test       # 135 tests
 ```
 

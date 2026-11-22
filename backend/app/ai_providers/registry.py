@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import Iterable
 
@@ -50,6 +51,10 @@ class ProviderRegistry:
             raise ProviderNotAvailableError("No AI provider is configured on this server")
         return self.get(chosen)
 
+    async def refresh(self, *, force: bool = False) -> None:
+        """Let providers whose models change at runtime (Ollama) update their lists."""
+        await asyncio.gather(*(provider.refresh(force=force) for provider in self._providers.values()))
+
     async def aclose(self) -> None:
         for provider in self._providers.values():
             try:
@@ -71,6 +76,13 @@ def build_provider_registry(settings: Settings) -> ProviderRegistry:
 
         registry.register(GeminiProvider.from_settings(settings))
         logger.info("Gemini provider enabled with models: %s", ", ".join(settings.gemini_models))
+    if settings.ollama_base_url is not None:
+        from app.ai_providers.ollama_provider import OllamaProvider
+
+        registry.register(OllamaProvider.from_settings(settings))
+        logger.info("Ollama provider enabled at %s", settings.ollama_base_url)
     if not registry.list():
-        logger.warning("No AI provider configured: set OPENAI_API_KEY or GEMINI_API_KEY to enable chat replies")
+        logger.warning(
+            "No AI provider configured: set OPENAI_API_KEY, GEMINI_API_KEY or OLLAMA_BASE_URL to enable chat replies"
+        )
     return registry

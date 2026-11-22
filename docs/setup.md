@@ -7,7 +7,8 @@ one local server at <http://localhost:8000>. No Docker, Visual Studio or Nginx.
 
 Needs Python 3.12+, Flutter 3.50+ (only to build the web app; the script also
 finds it in `C:\src\flutter` or `%USERPROFILE%\develop\flutter` when it is not
-on `PATH`) and an OpenAI or Gemini API key.
+on `PATH`) and an AI model: a free local one through [Ollama](#2c-local-models-ollama-no-api-key)
+(no key), or an OpenAI or Gemini API key.
 
 1. Double-click `start-local.cmd` in the repository root, or run it in a terminal:
 
@@ -15,9 +16,11 @@ on `PATH`) and an OpenAI or Gemini API key.
    .\start-local.cmd
    ```
 
-2. The first time, `.env` opens in Notepad. Paste your key after
-   `OPENAI_API_KEY=` (or `GEMINI_API_KEY=`), save and close Notepad. The key
-   stays in `.env` on this PC; the browser never receives it.
+2. If Ollama runs on the PC and no key is set, the script uses Ollama
+   (`OLLAMA_BASE_URL=http://127.0.0.1:11434` in `.env`) and asks nothing.
+   Otherwise it asks for a key: paste it and press Enter (the input is hidden). A key starting with `sk-` is saved as `OPENAI_API_KEY`, one
+   starting with `AIza` as `GEMINI_API_KEY`, in `.env` on this PC; the browser
+   never receives it. To change it later, edit `.env` and restart the script.
 3. The script (`scripts/start-local.ps1`) then:
    - creates `.env` with a random `JWT_SECRET`, so sign-ins survive restarts;
    - creates `backend\.venv` and installs the backend (again only when
@@ -77,6 +80,7 @@ then `backend/.env` (later wins). Key values:
 | `OPENAI_REALTIME_MODEL` | `gpt-realtime-2.1` | OpenAI voice model; empty disables OpenAI voice |
 | `GEMINI_LIVE_MODEL` | `gemini-3.8-live` | Gemini voice model; empty disables Gemini voice |
 | `DEFAULT_AI_PROVIDER` | empty | `openai` or `gemini` when both are configured; empty = OpenAI (first registered) |
+| `OLLAMA_BASE_URL` | empty | Local models through Ollama, no key (`http://127.0.0.1:11434`); see section 2c |
 | `WEB_APP_DIR` | empty | A Flutter web build (`API_BASE_URL=/`) to serve at `/` from the API server; set by `start-local.ps1` |
 
 ## 2b. Enabling AI replies (OpenAI)
@@ -92,6 +96,34 @@ then `backend/.env` (later wins). Key values:
 
 Responses are requested with `store=false` (OpenAI doesn't keep them), and with
 `safety_identifier` set to a hash of the user id (never an email).
+
+## 2c. Local models (Ollama, no API key)
+
+[Ollama](https://ollama.com) runs open models on your own computer: no key, no
+cost per message, and conversations never leave the PC. Text chat only (no voice
+mode); models with the `vision` capability also read images.
+
+1. Install Ollama: <https://ollama.com/download> (Windows: `OllamaSetup.exe`, per
+   user, no admin rights). It runs in the background and serves
+   `http://127.0.0.1:11434`.
+2. Install a model, for example:
+
+   ```powershell
+   ollama pull gemma4:e4b
+   ```
+
+   `gemma4:e4b` (about 6.6 GB, reads images) suits a laptop with 6-8 GB of GPU
+   memory; `gemma4:e2b` (about 4.6 GB) is faster but simpler. See
+   <https://ollama.com/library> for others; larger models need more memory.
+3. Set `OLLAMA_BASE_URL=http://127.0.0.1:11434` in `.env` (`start-local.cmd` does
+   this itself when it finds Ollama and no key is set) and restart the backend.
+
+The app lists every installed chat model (embedding-only models are left out)
+and picks up models pulled later within about 15 seconds; reload the page to see
+them. Limit the list with `OLLAMA_ALLOWED_MODELS` and choose the default with
+`OLLAMA_DEFAULT_MODEL`. The first reply after a pause takes longer while Ollama
+loads the model into memory. With Docker, use
+`OLLAMA_BASE_URL=http://host.docker.internal:11434`.
 
 ### Voice mode (OpenAI Realtime)
 

@@ -4,7 +4,8 @@
     together at http://localhost:8000.
 
 .DESCRIPTION
-    The first run creates .env (with a random JWT_SECRET), a Python virtual
+    The first run asks for the AI provider key (hidden input) and creates .env
+    (with the key and a random JWT_SECRET), a Python virtual
     environment in backend\.venv, the SQLite database and the web build. Later
     runs reuse them and only redo what changed.
 
@@ -68,9 +69,37 @@ function Find-Tool([string] $Name, [string[]] $Candidates) {
 }
 
 function Test-ProviderKey([string] $EnvText) {
-    if ($env:OPENAI_API_KEY -or $env:GEMINI_API_KEY) { return $true }
-    return $EnvText -match '(?m)^[ \t]*(OPENAI_API_KEY|GEMINI_API_KEY)[ \t]*=[ \t]*[^\s#]'
+    if ($env:OPENAI_API_KEY -or $env:GEMINI_API_KEY -or $env:OLLAMA_BASE_URL) { return $true }
+    return $EnvText -match '(?m)^[ \t]*(OPENAI_API_KEY|GEMINI_API_KEY|OLLAMA_BASE_URL)[ \t]*=[ \t]*[^\s#]'
 }
+
+# The value of NAME=value in .env (process environment wins), or $null.
+function Get-EnvValue([string] $EnvText, [string] $Name) {
+    $fromProcess = [Environment]::GetEnvironmentVariable($Name)
+    if ($fromProcess) { return $fromProcess }
+    $match = [regex]::Match($EnvText, "(?m)^[ \t]*$Name[ \t]*=[ \t]*([^\s#][^\r\n]*?)[ \t]*\r?$")
+    if ($match.Success) { return $match.Groups[1].Value.Trim('"', "'") }
+    return $null
+}
+
+function Set-EnvValue([string] $EnvText, [string] $Name, [string] $Value) {
+    $line = "$Name=$Value"
+    $pattern = "(?m)^[ \t]*$Name[ \t]*=[^\r\n]*"
+    if ($EnvText -match $pattern) { return [regex]::Replace($EnvText, $pattern, { param($match) $line }) }
+    return $EnvText.TrimEnd() + "`n$line`n"
+}
+
+# Installed Ollama models (names), or $null when Ollama does not answer.
+function Get-OllamaModels([string] $BaseUrl) {
+    try {
+        $tags = Invoke-RestMethod -Uri ($BaseUrl.TrimEnd('/') + '/api/tags') -TimeoutSec 3
+        return @($tags.models | ForEach-Object { $_.name })
+    } catch {
+        return $null
+    }
+}
+
+$localOllama = 'http://127.0.0.1:11434'
 
 # --- 1. Configuration ---------------------------------------------------------------
 Write-Step 'Configuration (.env)'
@@ -96,18 +125,59 @@ if ($envText -notmatch '(?m)^[ \t]*JWT_SECRET[ \t]*=[ \t]*[^\s#]') {
     Write-Host 'Generated JWT_SECRET'
 }
 
+# No key yet, but Ollama runs on this PC: use its models, no key needed.
+if (-not (Test-ProviderKey $envText) -and ($null -ne (Get-OllamaModels $localOllama))) {
+    $envText = Set-EnvValue $envText 'OLLAMA_BASE_URL' $localOllama
+    [IO.File]::WriteAllText($envFile, $envText, $utf8)
+    Write-Host "Found Ollama on this PC: using its models (OLLAMA_BASE_URL=$localOllama in .env)"
+}
+
 if (-not (Test-ProviderKey $envText)) {
     Write-Host ''
-    Write-Host 'The app needs an AI provider key to answer.' -ForegroundColor Yellow
-    Write-Host '  1. Create a key: https://platform.openai.com/api-keys'
-    Write-Host '     (or a Gemini key: https://aistudio.google.com/apikey)'
-    Write-Host '  2. In the .env file that opens now, paste it right after OPENAI_API_KEY='
-    Write-Host '     (or GEMINI_API_KEY=), then save and close Notepad.'
+    Write-Host 'The app needs an AI model to answer. Either:' -ForegroundColor Yellow
+    Write-Host '  a) a free local model, no key: install Ollama from https://ollama.com/download,'
+    Write-Host '     run "ollama pull gemma4:e4b", then press Ctrl+C here and run this again; or'
+    Write-Host '  b) an API key: https://platform.openai.com/api-keys (starts with sk-)'
+    Write-Host '     or https://aistudio.google.com/apikey (Gemini, starts with AIza).'
+    Write-Host '     It is saved only in .env on this PC and never sent to the browser.'
     Write-Host ''
-    Start-Process notepad.exe -ArgumentList "`"$envFile`"" -Wait
-    $envText = [IO.File]::ReadAllText($envFile)
-    if (-not (Test-ProviderKey $envText)) {
-        Stop-WithError 'No OPENAI_API_KEY or GEMINI_API_KEY in .env. Add one and run this again.'
+    # Hidden input: the key is not shown on screen or kept in the console history.
+    $secure = Read-Host 'Paste the key and press Enter (nothing is shown while you paste)' -AsSecureString
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+    try {
+        $raw = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+    } finally {
+        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+    }
+    # Terminals that use "bracketed paste" wrap pasted text in ESC[200~ ... ESC[201~;
+    # drop those markers and other control characters, then surrounding spaces and quotes.
+    $key = ($raw -replace '\x1b\[20[01]~', '' -replace '[\x00-\x1f\x7f]', '').Trim().Trim('"', "'")
+    $raw = $null
+    if ($key -match '^AIza[0-9A-Za-z_-]{30,}$') {
+        $keyName = 'GEMINI_API_KEY'
+    } elseif ($key -match '^sk-[0-9A-Za-z_-]{20,}$') {
+        $keyName = 'OPENAI_API_KEY'
+    } else {
+        # Never echo the input: it may be a real key with a typo.
+        Stop-WithError ("The pasted text ($($key.Length) characters) is not an OpenAI key (sk-...) or a Gemini key (AIza...). " +
+            'Copy the key itself from the provider''s website and run this again.')
+    }
+    $envText = Set-EnvValue $envText $keyName $key
+    [IO.File]::WriteAllText($envFile, $envText, $utf8)
+    $key = $null
+    Write-Host "Saved $keyName in .env"
+}
+
+# Ollama configured: say so now if it is not running or has no model yet.
+$ollamaUrl = Get-EnvValue $envText 'OLLAMA_BASE_URL'
+if ($ollamaUrl) {
+    $ollamaModels = Get-OllamaModels $ollamaUrl
+    if ($null -eq $ollamaModels) {
+        Write-Host "Ollama does not answer at $ollamaUrl. Start Ollama from the Start menu; the app picks it up when it runs." -ForegroundColor Yellow
+    } elseif ($ollamaModels.Count -eq 0) {
+        Write-Host 'Ollama has no model yet. In another terminal run: ollama pull gemma4:e4b' -ForegroundColor Yellow
+    } else {
+        Write-Host ('Ollama models: ' + ($ollamaModels -join ', '))
     }
 }
 

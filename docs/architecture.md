@@ -51,11 +51,18 @@ through one adapter interface, and a registry picks the adapter from configurati
 - `create_realtime_session(request)` → `RealtimeSessionDescriptor` (transport,
   endpoint, short-lived client credential, expiry, negotiated config).
 - `aclose()` – release network resources.
+- `refresh(force=)` – optional: update the model list while the server runs
+  (Ollama, whose installed models change with `ollama pull`). The registry calls it
+  at startup, on `GET /providers` and before each chat reply; Ollama rate-limits it
+  to one check per 15 s.
 
-`ProviderRegistry` holds the adapters that are configured (API key present and
-enabled), resolves the default (`DEFAULT_AI_PROVIDER`, else the first configured),
-and rejects unknown providers. Two adapters exist: `openai_provider.py` and
-`gemini_provider.py`. Tests also use a **test-only** mock adapter (`backend/tests/fakes`).
+`ProviderRegistry` holds the adapters that are configured (API key or URL present
+and enabled), resolves the default (`DEFAULT_AI_PROVIDER`, else the first configured),
+and rejects unknown providers. Three adapters exist: `openai_provider.py`,
+`gemini_provider.py` and `ollama_provider.py` (local models through Ollama's
+`/api/chat`, no key, text and images only; a provider without models, such as
+Ollama that is not running, is left out of `/providers`). Tests also use a
+**test-only** mock adapter (`backend/tests/fakes`).
 The running app has no fake provider: with no adapter configured, the
 `/providers` endpoint returns an empty list and the UI says so.
 

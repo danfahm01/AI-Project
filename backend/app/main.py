@@ -38,6 +38,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     app.state.rate_limiter = build_rate_limit_backend(settings)
     app.state.providers = build_provider_registry(settings)
+    await app.state.providers.refresh(force=True)  # Ollama: which models are installed
     app.state.attachment_storage = AttachmentStorage(settings.attachment_storage_dir)
     app.state.background_tasks = set()  # in-flight chat generations
     logger.info(

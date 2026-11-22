@@ -164,6 +164,10 @@ class AIProvider(abc.ABC):
     async def aclose(self) -> None:  # noqa: B027 - optional hook
         """Release network resources (HTTP clients, sockets)."""
 
+    async def refresh(self, *, force: bool = False) -> None:  # noqa: B027 - optional hook
+        """Update the model list, for providers whose models change while the
+        server runs (Ollama). ``force`` skips any rate limiting. Must not raise."""
+
     def get_model(self, model_id: str) -> ModelInfo | None:
         return next((m for m in self.list_models() if m.id == model_id), None)
 
